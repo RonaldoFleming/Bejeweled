@@ -4,10 +4,35 @@ using UnityEngine;
 
 public class NodeController : MonoBehaviour
 {
-    private bool _isClicked = false;
-
-    private void Start()
+    public int PosX { get; set; }
+    public int PosY { get; set; }
+    private Color _nodeColor;
+    public Color NodeColor
     {
+        get { return _nodeColor; }
+        set
+        {
+            _nodeColor = value;
+            _nodeMaterial.SetColor("_BaseColor", _nodeColor);
+        }
+    }
+
+    private bool _isClicked = false;
+    private Material _nodeMaterial;
+
+    public enum NodeMovementDirection
+    {
+        Up,
+        Down,
+        Left,
+        Right
+    }
+
+
+    private void Awake()
+    {
+        _nodeMaterial = GetComponent<MeshRenderer>().materials[0];
+
         EventBus.OnSwipeUp += OnSwipeUp;
         EventBus.OnSwipeDown += OnSwipeDown;
         EventBus.OnSwipeLeft += OnSwipeLeft;
@@ -26,8 +51,8 @@ public class NodeController : MonoBehaviour
     {
         if(_isClicked)
         {
-            Debug.Log(name + " - Swipe Up!");
             _isClicked = false;
+            EventBus.RaiseMoveNode(this, PosX, PosY, NodeMovementDirection.Up);
         }
     }
 
@@ -35,8 +60,8 @@ public class NodeController : MonoBehaviour
     {
         if (_isClicked)
         {
-            Debug.Log(name + " - Swipe Down!");
             _isClicked = false;
+            EventBus.RaiseMoveNode(this, PosX, PosY, NodeMovementDirection.Down);
         }
     }
 
@@ -44,8 +69,8 @@ public class NodeController : MonoBehaviour
     {
         if (_isClicked)
         {
-            Debug.Log(name + " - Swipe Left!");
             _isClicked = false;
+            EventBus.RaiseMoveNode(this, PosX, PosY, NodeMovementDirection.Left);
         }
     }
 
@@ -53,9 +78,14 @@ public class NodeController : MonoBehaviour
     {
         if (_isClicked)
         {
-            Debug.Log(name + " - Swipe Right!");
             _isClicked = false;
+            EventBus.RaiseMoveNode(this, PosX, PosY, NodeMovementDirection.Right);
         }
+    }
+
+    public void GoToNewPosition()
+    {
+        transform.localPosition = new Vector3(PosX * 1f + 0.5f, -PosY * 1f - 0.5f, 0f);
     }
 
     void OnMouseDown()
