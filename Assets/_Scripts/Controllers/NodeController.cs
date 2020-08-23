@@ -1,9 +1,12 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
 public class NodeController : MonoBehaviour
 {
+    [SerializeField] private float _movementTime = 1;
+
     public int PosX { get; set; }
     public int PosY { get; set; }
     private Color _nodeColor;
@@ -18,7 +21,9 @@ public class NodeController : MonoBehaviour
     }
 
     private bool _isClicked = false;
-    private Material _nodeMaterial;
+    private Material _nodeMaterial = default;
+    private float _movementIterator = 0;
+    private bool _isInteractable = true;
 
     public enum NodeMovementDirection
     {
@@ -37,6 +42,8 @@ public class NodeController : MonoBehaviour
         EventBus.OnSwipeDown += OnSwipeDown;
         EventBus.OnSwipeLeft += OnSwipeLeft;
         EventBus.OnSwipeRight += OnSwipeRight;
+        EventBus.OnMoveNode += OnMoveNode;
+        EventBus.OnNodeMovementEnded += OnNodeMovementEnded;
     }
 
     private void OnDestroy()
@@ -45,6 +52,8 @@ public class NodeController : MonoBehaviour
         EventBus.OnSwipeDown -= OnSwipeDown;
         EventBus.OnSwipeLeft -= OnSwipeLeft;
         EventBus.OnSwipeRight -= OnSwipeRight;
+        EventBus.OnMoveNode -= OnMoveNode;
+        EventBus.OnNodeMovementEnded -= OnNodeMovementEnded;
     }
 
     private void OnSwipeUp(object sender, System.EventArgs e)
@@ -83,13 +92,50 @@ public class NodeController : MonoBehaviour
         }
     }
 
-    public void GoToNewPosition()
+    public void GoToNewPosition(bool animate = false)
     {
-        transform.localPosition = new Vector3(PosX * 1f + 0.5f, -PosY * 1f - 0.5f, 0f);
+        Vector3 desiredPosition = new Vector3(PosX * 1f + 0.5f, -PosY * 1f - 0.5f, 0f);
+
+        if (animate && gameObject.activeSelf)
+        {
+            StopAllCoroutines();
+            StartCoroutine(Move(transform.localPosition, desiredPosition));
+        }
+        else
+        {
+            transform.localPosition = desiredPosition;
+        }
+    }
+
+    private IEnumerator Move(Vector3 initialPos, Vector3 desiredPos)
+    {
+        _movementIterator = 0f;
+
+        while (_movementIterator < 1f)
+        {
+            _movementIterator = Mathf.Clamp(_movementIterator + 1 / _movementTime * Time.deltaTime, 0f, 1f);
+            transform.localPosition = Vector3.Lerp(initialPos, desiredPos, _movementIterator);
+            yield return null;
+        }
+
+        EventBus.RaiseNodeMovementEnded(this);
+    }
+
+    private void OnMoveNode(object sender, EventArgs e)
+    {
+        _isInteractable = false;
+    }
+
+    private void OnNodeMovementEnded(object sender, EventArgs e)
+    {
+        _isInteractable = true;
     }
 
     void OnMouseDown()
     {
-        _isClicked = true;
+        if (_isInteractable)
+        {
+            _isClicked = true;
+        }
     }
 }

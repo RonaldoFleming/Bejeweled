@@ -77,6 +77,17 @@ public class EventBus : MonoBehaviour
 
     #endregion
 
+    #region Node Movement Ended
+
+    public static event EventHandler OnNodeMovementEnded;
+
+    public static void RaiseNodeMovementEnded(object sender)
+    {
+        OnNodeMovementEnded?.Invoke(sender, EventArgs.Empty);
+    }
+
+    #endregion
+
     #endregion
 
     #region GUI Events
