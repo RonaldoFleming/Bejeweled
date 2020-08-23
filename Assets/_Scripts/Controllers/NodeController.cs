@@ -43,7 +43,7 @@ public class NodeController : MonoBehaviour
         EventBus.OnSwipeLeft += OnSwipeLeft;
         EventBus.OnSwipeRight += OnSwipeRight;
         EventBus.OnMoveNode += OnMoveNode;
-        EventBus.OnNodeMovementEnded += OnNodeMovementEnded;
+        EventBus.OnAllMovementsEnded += OnAllMovementsEnded;
     }
 
     private void OnDestroy()
@@ -53,7 +53,7 @@ public class NodeController : MonoBehaviour
         EventBus.OnSwipeLeft -= OnSwipeLeft;
         EventBus.OnSwipeRight -= OnSwipeRight;
         EventBus.OnMoveNode -= OnMoveNode;
-        EventBus.OnNodeMovementEnded -= OnNodeMovementEnded;
+        EventBus.OnAllMovementsEnded -= OnAllMovementsEnded;
     }
 
     private void OnSwipeUp(object sender, System.EventArgs e)
@@ -126,7 +126,7 @@ public class NodeController : MonoBehaviour
         _isInteractable = false;
     }
 
-    private void OnNodeMovementEnded(object sender, EventArgs e)
+    private void OnAllMovementsEnded(object sender, EventArgs e)
     {
         _isInteractable = true;
     }
