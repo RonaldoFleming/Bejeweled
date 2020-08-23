@@ -9,9 +9,9 @@ public class GridController : MonoBehaviour
     [SerializeField] private int _gridHeight = 8;
     [SerializeField] private List<Color> _colorsList = default;
 
-    private GridNode[,] _grid;
-    private List<GridNode> _verticallyMatchedNodes;
-    private List<GridNode> _horizontallyMatchedNodes;
+    private NodeController[,] _grid;
+    private List<NodeController> _verticallyMatchedNodes;
+    private List<NodeController> _horizontallyMatchedNodes;
 
     private class GridNode
     {
@@ -31,56 +31,190 @@ public class GridController : MonoBehaviour
 
     private void Start()
     {
-        _grid = new GridNode[_gridWidth, _gridHeight];
-        _verticallyMatchedNodes = new List<GridNode>();
-        _horizontallyMatchedNodes = new List<GridNode>();
+        _grid = new NodeController[_gridWidth, _gridHeight];
+        _verticallyMatchedNodes = new List<NodeController>();
+        _horizontallyMatchedNodes = new List<NodeController>();
 
         for(int y = 0; y < _gridHeight; y++)
         {
             for(int x = 0; x < _gridWidth; x++)
             {
                 Color nodeColor = _colorsList[Random.Range(0, _colorsList.Count)];
-                GameObject node = GetComponent<ObjectPooler>().GetPooledObject("Node");
+                GameObject go = GetComponent<ObjectPooler>().GetPooledObject("Node");
+                NodeController node = go.GetComponent<NodeController>();
                 node.name = "Node_" + x + "_" + y;
                 node.transform.SetParent(transform);
                 node.transform.localPosition = new Vector3(x * 1f + 0.5f, -y * 1f - 0.5f, 0f);
-                node.GetComponent<MeshRenderer>().materials[0].SetColor("_BaseColor", nodeColor);
-                _grid[x, y] = new GridNode(x, y, nodeColor, node);
+                node.PosX = x;
+                node.PosY = y;
+                node.NodeColor = nodeColor;
+                _grid[x, y] = node;
             }
         }
 
         transform.position = new Vector3(-_gridWidth * 0.5f, _gridHeight * 0.5f, 0f);
 
         FindMatches();
+        DestroyMatchedNodes();
+
+        EventBus.OnMoveNode += OnMoveNode;
+    }
+
+    private void OnMoveNode(object sender, System.EventArgs e)
+    {
+        EventBus.MoveNodeEventArgs args = e as EventBus.MoveNodeEventArgs;
+
+        switch (args.MovementDirection)
+        {
+            case NodeController.NodeMovementDirection.Up:
+                MoveNodeUp(args.PosX, args.PosY);
+                FindMatches();
+                if (_verticallyMatchedNodes.Count > 0 || _horizontallyMatchedNodes.Count > 0)
+                {
+                    DestroyMatchedNodes();
+                }
+                else
+                {
+                    MoveNodeUp(args.PosX, args.PosY);
+                }
+                break;
+
+            case NodeController.NodeMovementDirection.Down:
+                MoveNodeDown(args.PosX, args.PosY);
+                FindMatches();
+                if (_verticallyMatchedNodes.Count > 0 || _horizontallyMatchedNodes.Count > 0)
+                {
+                    DestroyMatchedNodes();
+                }
+                else
+                {
+                    MoveNodeDown(args.PosX, args.PosY);
+                }
+                break;
+
+            case NodeController.NodeMovementDirection.Left:
+                MoveNodeLeft(args.PosX, args.PosY);
+                FindMatches();
+                if (_verticallyMatchedNodes.Count > 0 || _horizontallyMatchedNodes.Count > 0)
+                {
+                    DestroyMatchedNodes();
+                }
+                else
+                {
+                    MoveNodeLeft(args.PosX, args.PosY);
+                }
+                break;
+
+            case NodeController.NodeMovementDirection.Right:
+                MoveNodeRight(args.PosX, args.PosY);
+                FindMatches();
+                if (_verticallyMatchedNodes.Count > 0 || _horizontallyMatchedNodes.Count > 0)
+                {
+                    DestroyMatchedNodes();
+                }
+                else
+                {
+                    MoveNodeRight(args.PosX, args.PosY);
+                }
+                break;
+        }
+
+        FindMatches();
+        DestroyMatchedNodes();
+    }
+
+    private void MoveNodeUp(int posX, int posY)
+    {
+        if (posY > 0)
+        {
+            NodeController node01 = _grid[posX, posY];
+            NodeController node02 = _grid[posX, posY - 1];
+            node01.PosY--;
+            node02.PosY++;
+            _grid[posX, posY] = node02;
+            _grid[posX, posY - 1] = node01;
+            node01.GoToNewPosition();
+            node02.GoToNewPosition();
+        }
+    }
+
+    private void MoveNodeDown(int posX, int posY)
+    {
+        if (posY < _gridHeight - 1)
+        {
+            NodeController node01 = _grid[posX, posY];
+            NodeController node02 = _grid[posX, posY + 1];
+            node01.PosY++;
+            node02.PosY--;
+            _grid[posX, posY] = node02;
+            _grid[posX, posY + 1] = node01;
+            node01.GoToNewPosition();
+            node02.GoToNewPosition();
+        }
+    }
+
+    private void MoveNodeLeft(int posX, int posY)
+    {
+        if (posX > 0)
+        {
+            NodeController node01 = _grid[posX, posY];
+            NodeController node02 = _grid[posX - 1, posY];
+            node01.PosX--;
+            node02.PosX++;
+            _grid[posX, posY] = node02;
+            _grid[posX - 1, posY] = node01;
+            node01.GoToNewPosition();
+            node02.GoToNewPosition();
+        }
+    }
+
+    private void MoveNodeRight(int posX, int posY)
+    {
+        if (posX < _gridWidth - 1)
+        {
+            NodeController node01 = _grid[posX, posY];
+            NodeController node02 = _grid[posX + 1, posY];
+            node01.PosX++;
+            node02.PosX--;
+            _grid[posX, posY] = node02;
+            _grid[posX + 1, posY] = node01;
+            node01.GoToNewPosition();
+            node02.GoToNewPosition();
+        }
     }
 
     private void FindMatches()
     {
-        double initialTime = Time.realtimeSinceStartup;
         FindVerticalMatches();
         FindHorizontalMatches();
-        //Debug.Log("Elapsed time - " + (Time.realtimeSinceStartup - initialTime));
     }
 
     private void FindVerticalMatches()
     {
-        List<GridNode> _currentMatches = new List<GridNode>();
+        _verticallyMatchedNodes.Clear();
+        List<NodeController> _currentMatches = new List<NodeController>();
         for (int x = 0; x < _gridWidth; x++)
         {
             _currentMatches.Clear();
-            for(int y = 0; y < _gridHeight - 1; y++)
+            for (int y = 0; y < _gridHeight - 1; y++)
             {
-                if(_currentMatches.Count == 0)
+                if (_currentMatches.Count == 0)
                 {
-                    _currentMatches.Add(_grid[x, y]);
+                    if(_grid[x, y].gameObject.activeSelf)
+                    {
+                        _currentMatches.Add(_grid[x, y]);
+                    }
                 }
-                if(_grid[x,y].NodeColor == _grid[x, y + 1].NodeColor)
+                if (_grid[x,y].NodeColor == _grid[x, y + 1].NodeColor)
                 {
-                    _currentMatches.Add(_grid[x, y + 1]);
+                    if (_grid[x, y + 1].gameObject.activeSelf)
+                    {
+                        _currentMatches.Add(_grid[x, y + 1]);
+                    }
                 }
                 else
                 {
-                    if(_currentMatches.Count >= 3)
+                    if (_currentMatches.Count >= 3)
                     {
                         _verticallyMatchedNodes.AddRange(_currentMatches);
                     }
@@ -101,7 +235,8 @@ public class GridController : MonoBehaviour
 
     private void FindHorizontalMatches()
     {
-        List<GridNode> _currentMatches = new List<GridNode>();
+        _horizontallyMatchedNodes.Clear();
+        List<NodeController> _currentMatches = new List<NodeController>();
         for (int y = 0; y < _gridHeight; y++)
         {
             _currentMatches.Clear();
@@ -109,11 +244,17 @@ public class GridController : MonoBehaviour
             {
                 if (_currentMatches.Count == 0)
                 {
-                    _currentMatches.Add(_grid[x, y]);
+                    if (_grid[x, y].gameObject.activeSelf)
+                    {
+                        _currentMatches.Add(_grid[x, y]);
+                    }
                 }
                 if (_grid[x, y].NodeColor == _grid[x + 1, y].NodeColor)
                 {
-                    _currentMatches.Add(_grid[x + 1, y]);
+                    if (_grid[x + 1, y].gameObject.activeSelf)
+                    {
+                        _currentMatches.Add(_grid[x + 1, y]);
+                    }
                 }
                 else
                 {
@@ -133,6 +274,28 @@ public class GridController : MonoBehaviour
                     }
                 }
             }
+        }
+    }
+
+    private void DestroyMatchedNodes()
+    {
+        DestroyVerticallyMatchedNodes();
+        DestroyHorizontallyMatchedNodes();
+    }
+
+    private void DestroyVerticallyMatchedNodes()
+    {
+        foreach(NodeController node in _verticallyMatchedNodes)
+        {
+            node.gameObject.SetActive(false);
+        }
+    }
+
+    private void DestroyHorizontallyMatchedNodes()
+    {
+        foreach (NodeController node in _horizontallyMatchedNodes)
+        {
+            node.gameObject.SetActive(false);
         }
     }
 }
