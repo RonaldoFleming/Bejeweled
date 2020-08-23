@@ -12,6 +12,9 @@ public class GridController : MonoBehaviour
     private NodeController[,] _grid;
     private List<NodeController> _verticallyMatchedNodes;
     private List<NodeController> _horizontallyMatchedNodes;
+    private EventBus.MoveNodeEventArgs _currentMoveArgs;
+    private bool _nodeMoved = false;
+    private List<NodeController> _movingNodesList;
 
     private class GridNode
     {
@@ -34,6 +37,7 @@ public class GridController : MonoBehaviour
         _grid = new NodeController[_gridWidth, _gridHeight];
         _verticallyMatchedNodes = new List<NodeController>();
         _horizontallyMatchedNodes = new List<NodeController>();
+        _movingNodesList = new List<NodeController>();
 
         for(int y = 0; y < _gridHeight; y++)
         {
@@ -57,69 +61,38 @@ public class GridController : MonoBehaviour
         FindDestroyAndSettleMatchedNodes();
 
         EventBus.OnMoveNode += OnMoveNode;
+        EventBus.OnNodeMovementEnded += OnNodeMovementEnded;
     }
 
     #region Node Movement
     private void OnMoveNode(object sender, System.EventArgs e)
     {
-        EventBus.MoveNodeEventArgs args = e as EventBus.MoveNodeEventArgs;
+        _currentMoveArgs = e as EventBus.MoveNodeEventArgs; ;
+        _nodeMoved = true;
+        _movingNodesList.Clear();
+        MoveUsingCurrentArgs();
+    }
 
-        switch (args.MovementDirection)
+    private void MoveUsingCurrentArgs()
+    {
+        switch (_currentMoveArgs.MovementDirection)
         {
             case NodeController.NodeMovementDirection.Up:
-                MoveNodeUp(args.PosX, args.PosY);
-                FindMatches();
-                if (_verticallyMatchedNodes.Count > 0 || _horizontallyMatchedNodes.Count > 0)
-                {
-                    DestroyMatchedNodes();
-                }
-                else
-                {
-                    MoveNodeUp(args.PosX, args.PosY);
-                }
+                MoveNodeUp(_currentMoveArgs.PosX, _currentMoveArgs.PosY);
                 break;
 
             case NodeController.NodeMovementDirection.Down:
-                MoveNodeDown(args.PosX, args.PosY);
-                FindMatches();
-                if (_verticallyMatchedNodes.Count > 0 || _horizontallyMatchedNodes.Count > 0)
-                {
-                    DestroyMatchedNodes();
-                }
-                else
-                {
-                    MoveNodeDown(args.PosX, args.PosY);
-                }
+                MoveNodeDown(_currentMoveArgs.PosX, _currentMoveArgs.PosY);
                 break;
 
             case NodeController.NodeMovementDirection.Left:
-                MoveNodeLeft(args.PosX, args.PosY);
-                FindMatches();
-                if (_verticallyMatchedNodes.Count > 0 || _horizontallyMatchedNodes.Count > 0)
-                {
-                    DestroyMatchedNodes();
-                }
-                else
-                {
-                    MoveNodeLeft(args.PosX, args.PosY);
-                }
+                MoveNodeLeft(_currentMoveArgs.PosX, _currentMoveArgs.PosY);
                 break;
 
             case NodeController.NodeMovementDirection.Right:
-                MoveNodeRight(args.PosX, args.PosY);
-                FindMatches();
-                if (_verticallyMatchedNodes.Count > 0 || _horizontallyMatchedNodes.Count > 0)
-                {
-                    DestroyMatchedNodes();
-                }
-                else
-                {
-                    MoveNodeRight(args.PosX, args.PosY);
-                }
+                MoveNodeRight(_currentMoveArgs.PosX, _currentMoveArgs.PosY);
                 break;
         }
-
-        FindDestroyAndSettleMatchedNodes();
     }
 
     private void MoveNodeUp(int posX, int posY)
@@ -132,8 +105,14 @@ public class GridController : MonoBehaviour
             node02.PosY++;
             _grid[posX, posY] = node02;
             _grid[posX, posY - 1] = node01;
-            node01.GoToNewPosition();
-            node02.GoToNewPosition();
+            _movingNodesList.Add(node01);
+            _movingNodesList.Add(node02);
+            node01.GoToNewPosition(true);
+            node02.GoToNewPosition(true);
+        }
+        else
+        {
+            _nodeMoved = false;
         }
     }
 
@@ -147,8 +126,14 @@ public class GridController : MonoBehaviour
             node02.PosY--;
             _grid[posX, posY] = node02;
             _grid[posX, posY + 1] = node01;
-            node01.GoToNewPosition();
-            node02.GoToNewPosition();
+            _movingNodesList.Add(node01);
+            _movingNodesList.Add(node02);
+            node01.GoToNewPosition(true);
+            node02.GoToNewPosition(true);
+        }
+        else
+        {
+            _nodeMoved = false;
         }
     }
 
@@ -162,8 +147,14 @@ public class GridController : MonoBehaviour
             node02.PosX++;
             _grid[posX, posY] = node02;
             _grid[posX - 1, posY] = node01;
-            node01.GoToNewPosition();
-            node02.GoToNewPosition();
+            _movingNodesList.Add(node01);
+            _movingNodesList.Add(node02);
+            node01.GoToNewPosition(true);
+            node02.GoToNewPosition(true);
+        }
+        else
+        {
+            _nodeMoved = false;
         }
     }
 
@@ -177,8 +168,25 @@ public class GridController : MonoBehaviour
             node02.PosX--;
             _grid[posX, posY] = node02;
             _grid[posX + 1, posY] = node01;
-            node01.GoToNewPosition();
-            node02.GoToNewPosition();
+            _movingNodesList.Add(node01);
+            _movingNodesList.Add(node02);
+            node01.GoToNewPosition(true);
+            node02.GoToNewPosition(true);
+        }
+        else
+        {
+            _nodeMoved = false;
+        }
+    }
+
+    private void OnNodeMovementEnded(object sender, System.EventArgs e)
+    {
+        NodeController node = sender as NodeController;
+
+        _movingNodesList.Remove(node);
+        if (_movingNodesList.Count == 0)
+        {
+            FindDestroyAndSettleMatchedNodes();
         }
     }
 
@@ -189,8 +197,11 @@ public class GridController : MonoBehaviour
         secondNode.PosY = firstNodeStartingY;
         _grid[firstNode.PosX, firstNode.PosY] = firstNode;
         _grid[secondNode.PosX, secondNode.PosY] = secondNode;
-        firstNode.GoToNewPosition();
-        secondNode.GoToNewPosition();
+        if (!_movingNodesList.Contains(firstNode))
+        {
+            _movingNodesList.Add(firstNode);
+        }
+        firstNode.GoToNewPosition(true);
     }
 
     private void SettleNodes()
@@ -200,7 +211,7 @@ public class GridController : MonoBehaviour
             List<NodeController> emptyNodes = new List<NodeController>();
             for(int y = _gridHeight-1; y >= 0; y--)
             {
-                if (!_grid[x, y].gameObject.activeSelf)
+                if (!_grid[x, y].gameObject.GetComponent<MeshRenderer>().enabled)
                 {
                     emptyNodes.Add(_grid[x, y]);
                 }
@@ -214,8 +225,15 @@ public class GridController : MonoBehaviour
                     }
                 }
             }
+            for(int i = 0; i < emptyNodes.Count; i++)
+            {
+
+                emptyNodes[i].NodeColor = _colorsList[Random.Range(0, _colorsList.Count)];
+                emptyNodes[i].transform.localPosition = new Vector3(emptyNodes[i].PosX * 1f + 0.5f, /*_gridHeight * 0.5f +*/ i + 1f, 0f);
+                emptyNodes[i].GetComponent<MeshRenderer>().enabled = true;
+                emptyNodes[i].GoToNewPosition(true);
+            }
         }
-        FindDestroyAndSettleMatchedNodes();
     }
     #endregion
 
@@ -320,6 +338,7 @@ public class GridController : MonoBehaviour
     {
         DestroyVerticallyMatchedNodes();
         DestroyHorizontallyMatchedNodes();
+        _nodeMoved = false;
         SettleNodes();
     }
 
@@ -327,7 +346,7 @@ public class GridController : MonoBehaviour
     {
         foreach(NodeController node in _verticallyMatchedNodes)
         {
-            node.gameObject.SetActive(false);
+            node.gameObject.GetComponent<MeshRenderer>().enabled = false;
         }
     }
 
@@ -335,7 +354,7 @@ public class GridController : MonoBehaviour
     {
         foreach (NodeController node in _horizontallyMatchedNodes)
         {
-            node.gameObject.SetActive(false);
+            node.gameObject.GetComponent<MeshRenderer>().enabled = false;
         }
     }
     #endregion
@@ -347,6 +366,11 @@ public class GridController : MonoBehaviour
         if (_verticallyMatchedNodes.Count > 0 || _horizontallyMatchedNodes.Count > 0)
         {
             DestroyMatchedNodes();
+        }
+        else if(_nodeMoved)
+        {
+            MoveUsingCurrentArgs();
+            _nodeMoved = false;
         }
     }
     #endregion
