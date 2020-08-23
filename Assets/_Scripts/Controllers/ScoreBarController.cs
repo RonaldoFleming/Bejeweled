@@ -5,7 +5,7 @@ using UnityEngine.UI;
 
 public class ScoreBarController : MonoBehaviour
 {
-    [SerializeField] private Text _scoreText = default;
+    private Text _scoreText = default;
     
     void Start()
     {
