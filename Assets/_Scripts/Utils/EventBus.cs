@@ -7,6 +7,17 @@ public class EventBus : MonoBehaviour
 
     #region Gameplay Events
 
+    #region Game Started
+
+    public static event EventHandler OnGameStarted;
+
+    public static void RaiseGameStarted(object sender)
+    {
+        OnGameStarted?.Invoke(sender, EventArgs.Empty);
+    }
+
+    #endregion
+
     #region Swipe Up
 
     public static event EventHandler OnSwipeUp;
@@ -99,13 +110,27 @@ public class EventBus : MonoBehaviour
 
     #endregion
 
+    #region Node Destroyed
+
+    public static event EventHandler OnNodeDestroyed;
+
+    public static void RaiseNodeDestroyed(object sender)
+    {
+        OnNodeDestroyed?.Invoke(sender, EventArgs.Empty);
+    }
+
     #endregion
 
-    #region GUI Events
+    #region Score Updated
+
+    public static event EventHandler OnScoreUpdated;
+
+    public static void RaiseScoreUpdated(object sender)
+    {
+        OnScoreUpdated?.Invoke(sender, EventArgs.Empty);
+    }
 
     #endregion
-
-    #region Scene Management Events
 
     #endregion
 

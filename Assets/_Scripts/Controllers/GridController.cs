@@ -58,10 +58,18 @@ public class GridController : MonoBehaviour
 
         transform.position = new Vector3(-_gridWidth * 0.5f, _gridHeight * 0.5f, 0f);
 
+        EventBus.RaiseGameStarted(this);
+
         FindDestroyAndSettleMatchedNodes();
 
         EventBus.OnMoveNode += OnMoveNode;
         EventBus.OnNodeMovementEnded += OnNodeMovementEnded;
+    }
+
+    private void OnDestroy()
+    {
+        EventBus.OnMoveNode -= OnMoveNode;
+        EventBus.OnNodeMovementEnded -= OnNodeMovementEnded;
     }
 
     #region Node Movement
@@ -113,6 +121,7 @@ public class GridController : MonoBehaviour
         else
         {
             _nodeMoved = false;
+            EventBus.RaiseAllMovementsEnded(this);
         }
     }
 
@@ -134,6 +143,7 @@ public class GridController : MonoBehaviour
         else
         {
             _nodeMoved = false;
+            EventBus.RaiseAllMovementsEnded(this);
         }
     }
 
@@ -155,6 +165,7 @@ public class GridController : MonoBehaviour
         else
         {
             _nodeMoved = false;
+            EventBus.RaiseAllMovementsEnded(this);
         }
     }
 
@@ -176,6 +187,7 @@ public class GridController : MonoBehaviour
         else
         {
             _nodeMoved = false;
+            EventBus.RaiseAllMovementsEnded(this);
         }
     }
 
@@ -348,6 +360,7 @@ public class GridController : MonoBehaviour
         foreach(NodeController node in _verticallyMatchedNodes)
         {
             node.gameObject.GetComponent<MeshRenderer>().enabled = false;
+            EventBus.RaiseNodeDestroyed(this);
         }
     }
 
@@ -356,6 +369,7 @@ public class GridController : MonoBehaviour
         foreach (NodeController node in _horizontallyMatchedNodes)
         {
             node.gameObject.GetComponent<MeshRenderer>().enabled = false;
+            EventBus.RaiseNodeDestroyed(this);
         }
     }
     #endregion
