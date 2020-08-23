@@ -54,12 +54,12 @@ public class GridController : MonoBehaviour
 
         transform.position = new Vector3(-_gridWidth * 0.5f, _gridHeight * 0.5f, 0f);
 
-        FindMatches();
-        DestroyMatchedNodes();
+        FindDestroyAndSettleMatchedNodes();
 
         EventBus.OnMoveNode += OnMoveNode;
     }
 
+    #region Node Movement
     private void OnMoveNode(object sender, System.EventArgs e)
     {
         EventBus.MoveNodeEventArgs args = e as EventBus.MoveNodeEventArgs;
@@ -119,8 +119,7 @@ public class GridController : MonoBehaviour
                 break;
         }
 
-        FindMatches();
-        DestroyMatchedNodes();
+        FindDestroyAndSettleMatchedNodes();
     }
 
     private void MoveNodeUp(int posX, int posY)
@@ -183,6 +182,44 @@ public class GridController : MonoBehaviour
         }
     }
 
+    private void SwapNodePlaces(NodeController firstNode, NodeController secondNode)
+    {
+        int firstNodeStartingY = firstNode.PosY;
+        firstNode.PosY = secondNode.PosY;
+        secondNode.PosY = firstNodeStartingY;
+        _grid[firstNode.PosX, firstNode.PosY] = firstNode;
+        _grid[secondNode.PosX, secondNode.PosY] = secondNode;
+        firstNode.GoToNewPosition();
+        secondNode.GoToNewPosition();
+    }
+
+    private void SettleNodes()
+    {
+        for(int x = 0; x < _gridWidth; x++)
+        {
+            List<NodeController> emptyNodes = new List<NodeController>();
+            for(int y = _gridHeight-1; y >= 0; y--)
+            {
+                if (!_grid[x, y].gameObject.activeSelf)
+                {
+                    emptyNodes.Add(_grid[x, y]);
+                }
+                else
+                {
+                    if (emptyNodes.Count > 0)
+                    {
+                        SwapNodePlaces(_grid[x, y], emptyNodes[0]);
+                        emptyNodes.Add(_grid[x, y]);
+                        emptyNodes.RemoveAt(0);
+                    }
+                }
+            }
+        }
+        FindDestroyAndSettleMatchedNodes();
+    }
+    #endregion
+
+    #region Matching
     private void FindMatches()
     {
         FindVerticalMatches();
@@ -276,11 +313,14 @@ public class GridController : MonoBehaviour
             }
         }
     }
+    #endregion
 
+    #region Destroying
     private void DestroyMatchedNodes()
     {
         DestroyVerticallyMatchedNodes();
         DestroyHorizontallyMatchedNodes();
+        SettleNodes();
     }
 
     private void DestroyVerticallyMatchedNodes()
@@ -298,4 +338,16 @@ public class GridController : MonoBehaviour
             node.gameObject.SetActive(false);
         }
     }
+    #endregion
+
+    #region Find, Destroy and Settle
+    private void FindDestroyAndSettleMatchedNodes()
+    {
+        FindMatches();
+        if (_verticallyMatchedNodes.Count > 0 || _horizontallyMatchedNodes.Count > 0)
+        {
+            DestroyMatchedNodes();
+        }
+    }
+    #endregion
 }
