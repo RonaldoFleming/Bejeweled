@@ -88,6 +88,17 @@ public class EventBus : MonoBehaviour
 
     #endregion
 
+    #region All Movements Ended
+
+    public static event EventHandler OnAllMovementsEnded;
+
+    public static void RaiseAllMovementsEnded(object sender)
+    {
+        OnAllMovementsEnded?.Invoke(sender, EventArgs.Empty);
+    }
+
+    #endregion
+
     #endregion
 
     #region GUI Events

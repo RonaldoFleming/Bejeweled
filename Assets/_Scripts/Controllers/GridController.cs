@@ -186,6 +186,7 @@ public class GridController : MonoBehaviour
         _movingNodesList.Remove(node);
         if (_movingNodesList.Count == 0)
         {
+            EventBus.RaiseAllMovementsEnded(this);
             FindDestroyAndSettleMatchedNodes();
         }
     }
