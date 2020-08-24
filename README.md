@@ -2,7 +2,7 @@
 
 A simple match-3 game.
 
-Made using version 2019.4.7f1 of Unity3D
+Made using version 2019.4.8f1 of Unity3D
 
 Tested and working on Android devices.
 
